@@ -116,3 +116,122 @@ public class App extends Application {
         primaryStage.setScene(dashboardScene);
         primaryStage.show();
     }
+
+    // Load data obat
+    private void loadMedicines() {
+        medicines.add(new Medicine("Paracetamol", "Tablet", 5000, 100));
+        medicines.add(new Medicine("Amoxicillin", "Kapsul", 15000, 50));
+        medicineTable.setItems(medicines);
+    }
+
+    // Menampilkan dialog untuk menambah produk ke keranjang
+    private void showAddToCartDialog(Medicine selectedMedicine) {
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle("Tambah ke Keranjang");
+        dialog.setHeaderText("Masukkan jumlah obat yang ingin dibeli");
+        dialog.setContentText("Quantity:");
+
+        dialog.showAndWait().ifPresent(quantity -> {
+            try {
+                int qty = Integer.parseInt(quantity);
+                if (qty > 0 && qty <= selectedMedicine.getStock()) {
+                    addToCart(selectedMedicine, qty);
+                } else {
+                    showAlert(Alert.AlertType.WARNING, "Invalid Quantity", "Jumlah tidak valid", "Masukkan jumlah yang sesuai dengan stok.");
+                }
+            } catch (NumberFormatException e) {
+                showAlert(Alert.AlertType.WARNING, "Invalid Input", "Masukkan angka yang valid", "Quantity harus berupa angka.");
+            }
+        });
+    }
+
+    // Menambah obat ke keranjang
+    private void addToCart(Medicine medicine, int quantity) {
+        // Cek jika obat sudah ada di keranjang
+        CartItem existingItem = null;
+        for (CartItem item : cartItems) {
+            if (item.getMedicineName().equals(medicine.getName())) {
+                existingItem = item;
+                break;
+            }
+        }
+
+        if (existingItem != null) {
+            existingItem.setQuantity(existingItem.getQuantity() + quantity);
+        } else {
+            CartItem newItem = new CartItem(medicine, quantity);
+            cartItems.add(newItem);
+        }
+        cartTable.setItems(cartItems);
+    }
+
+    // Menampilkan dialog Checkout
+    private void showCheckoutDialog() {
+        double total = cartItems.stream().mapToDouble(CartItem::getTotalPrice).sum();
+        showAlert(Alert.AlertType.INFORMATION, "Checkout Successful", "Pembayaran Berhasil", "Total pembayaran: Rp " + total);
+        cartItems.clear(); // Kosongkan keranjang setelah checkout
+        cartTable.setItems(cartItems);
+    }
+
+    // Menampilkan dialog untuk menambah obat baru
+    private void showAddMedicineDialog() {
+        // Membuat form untuk menambah obat baru
+        VBox addMedicineLayout = new VBox(10);
+        addMedicineLayout.setStyle("-fx-padding: 20; -fx-background-color: #f0f0f0;");
+
+        nameField = new TextField();
+        nameField.setPromptText("Nama Obat");
+
+        categoryField = new TextField();
+        categoryField.setPromptText("Kategori");
+
+        priceField = new TextField();
+        priceField.setPromptText("Harga");
+
+        stockField = new TextField();
+        stockField.setPromptText("Stok");
+
+        Button saveButton = new Button("Simpan");
+        saveButton.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white;");
+        saveButton.setOnAction(e -> handleAddMedicine());
+
+        Button cancelButton = new Button("Batal");
+        cancelButton.setStyle("-fx-background-color: #f44336; -fx-text-fill: white;");
+        cancelButton.setOnAction(e -> handleCloseDialog());
+
+        addMedicineLayout.getChildren().addAll(nameField, categoryField, priceField, stockField, saveButton, cancelButton);
+
+        Stage addMedicineStage = new Stage();
+        Scene addMedicineScene = new Scene(addMedicineLayout, 300, 250);
+        addMedicineStage.setScene(addMedicineScene);
+        addMedicineStage.setTitle("Tambah Obat Baru");
+        addMedicineStage.show();
+    }
+
+    // Menambahkan obat baru
+    private void handleAddMedicine() {
+        String name = nameField.getText();
+        String category = categoryField.getText();
+        double price = Double.parseDouble(priceField.getText());
+        int stock = Integer.parseInt(stockField.getText());
+
+        Medicine newMedicine = new Medicine(name, category, price, stock);
+        medicines.add(newMedicine);
+        handleCloseDialog();
+    }
+
+    // Menutup dialog
+    private void handleCloseDialog() {
+        Stage stage = (Stage) nameField.getScene().getWindow();
+        stage.close();
+    }
+
+    // Menampilkan alert
+    private void showAlert(Alert.AlertType type, String title, String header, String content) {
+        Alert alert = new Alert(type);
+        alert.setTitle(title);
+        alert.setHeaderText(header);
+        alert.setContentText(content);
+        alert.showAndWait();
+    }
+}
